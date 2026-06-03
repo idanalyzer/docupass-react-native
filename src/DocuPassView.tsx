@@ -11,7 +11,7 @@ const COMPONENT_NAME = 'DocuPassView';
 
 const LINKING_ERROR =
   `The native component '${COMPONENT_NAME}' is not linked. Make sure:\n` +
-  '- you rebuilt the app after installing @idanalyzer/docupass-react-native\n' +
+  '- you rebuilt the app after installing docupass-react-native\n' +
   '- the native cores are available (Android: com.idanalyzer:docupass; iOS: DocuPass pod)\n';
 
 type NativeProps = {

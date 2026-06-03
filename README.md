@@ -1,6 +1,6 @@
 # DocuPass React Native SDK — in-app ID verification & KYC
 
-[![npm](https://img.shields.io/badge/npm-%40idanalyzer%2Fdocupass--react--native-blue)](https://www.npmjs.com/package/@idanalyzer/docupass-react-native)
+[![npm](https://img.shields.io/npm/v/docupass-react-native)](https://www.npmjs.com/package/docupass-react-native)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Embed [ID Analyzer **DocuPass**](https://www.idanalyzer.com/products/docupass.html)
@@ -15,7 +15,7 @@ web page.
 ## Install
 
 ```sh
-npm install @idanalyzer/docupass-react-native
+npm install docupass-react-native
 # iOS
 cd ios && pod install
 ```
@@ -32,7 +32,7 @@ Add camera usage strings:
 ## Usage
 
 ```tsx
-import { DocuPassView } from '@idanalyzer/docupass-react-native';
+import { DocuPassView } from 'docupass-react-native';
 
 export function Verify() {
   return (

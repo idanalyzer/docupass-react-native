@@ -7,3 +7,4 @@ android/.gradle/
 ios/build/
 *.xcworkspace
 Pods/
+package-lock.json
