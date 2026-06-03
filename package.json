@@ -1,0 +1,42 @@
+{
+  "name": "@idanalyzer/docupass-react-native",
+  "version": "0.1.0",
+  "description": "Native in-app ID verification & KYC for React Native (ID Analyzer DocuPass) — document scan, face match, on-device liveness, no WebView.",
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "files": [
+    "src",
+    "android",
+    "ios",
+    "DocupassReactNative.podspec",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "react-native",
+    "kyc",
+    "identity-verification",
+    "id-verification",
+    "docupass",
+    "idanalyzer",
+    "liveness",
+    "ocr"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/idanalyzer/docupass-react-native.git"
+  },
+  "author": "ID Analyzer",
+  "license": "MIT",
+  "homepage": "https://github.com/idanalyzer/docupass-react-native#readme",
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "react": "18.3.1",
+    "react-native": "0.76.5",
+    "typescript": "5.6.3",
+    "@types/react": "18.3.12"
+  }
+}

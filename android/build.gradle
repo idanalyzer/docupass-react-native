@@ -1,0 +1,53 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:8.7.3"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21"
+        classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.0.21"
+    }
+}
+
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "org.jetbrains.kotlin.plugin.compose"
+
+android {
+    namespace "com.idanalyzer.docupass.rn"
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 24
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose true }
+}
+
+repositories {
+    google()
+    mavenCentral()
+    // React Native android artifact comes from the host app's node_modules.
+    maven { url "${project.rootDir}/../node_modules/react-native/android" }
+}
+
+dependencies {
+    implementation "com.facebook.react:react-android"
+
+    // The native DocuPass Android core (publish to Maven Central in Phase 5;
+    // until then, resolve via a local/composite build during development).
+    implementation "com.idanalyzer:docupass:0.1.0"
+
+    implementation platform("androidx.compose:compose-bom:2024.12.01")
+    implementation "androidx.compose.ui:ui"
+    implementation "androidx.compose.material3:material3"
+    implementation "androidx.activity:activity-compose:1.9.3"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.8.7"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7"
+    implementation "androidx.savedstate:savedstate-ktx:1.2.1"
+}

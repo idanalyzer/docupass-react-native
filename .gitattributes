@@ -1,0 +1,9 @@
+*.ts text eol=lf
+*.tsx text eol=lf
+*.kt text eol=lf
+*.swift text eol=lf
+*.m text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.gradle text eol=lf
+*.podspec text eol=lf
