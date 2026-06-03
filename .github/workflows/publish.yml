@@ -1,12 +1,18 @@
 name: Publish to npm
 
-# Publishes docupass-react-native to npm when a version tag (v*) is pushed.
+# Publishes docupass-react-native to npm when a version tag (v*) is pushed, using
+# npm Trusted Publishing (OIDC) — NO token, same setup as idanalyzer2.
 #
-# Required repository secret:
-#   NPM_TOKEN  - an npm automation/granular access token with publish rights.
-#                (Create at npmjs.com -> Access Tokens -> Generate New Token ->
-#                 "Automation". For the first publish the token's owner must be
-#                 allowed to create the package name.)
+# ONE-TIME SETUP ON npmjs.com (no secret needed):
+#   npmjs.com -> Trusted Publisher (for the docupass-react-native package /
+#   the new name) -> GitHub Actions:
+#     Organization/User = idanalyzer
+#     Repository        = docupass-react-native
+#     Workflow filename = publish.yml
+#     Environment       = (leave blank)
+#   Then push tag v0.1.0. (If npm requires the package to exist before a trusted
+#   publisher can be attached, do one manual `npm publish` to create it, then this
+#   workflow handles every release after — exactly like the idanalyzer2 flow.)
 
 on:
   push:
@@ -16,7 +22,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # OIDC trusted publishing + provenance
 
 jobs:
   publish:
@@ -26,7 +32,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install + build
@@ -34,7 +40,8 @@ jobs:
           npm install
           npm run build
 
-      - name: Publish
+      - name: Update npm (trusted publishing needs npm >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Publish (OIDC, no token)
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
