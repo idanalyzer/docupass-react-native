@@ -18,6 +18,9 @@ type NativeProps = {
   reference: string;
   partyId?: string;
   baseUrl?: string;
+  brandColor?: string;
+  logoUrl?: string;
+  labels?: Record<string, string>;
   style?: any;
   onResult?: (event: NativeSyntheticEvent<DocuPassResultEvent>) => void;
 };

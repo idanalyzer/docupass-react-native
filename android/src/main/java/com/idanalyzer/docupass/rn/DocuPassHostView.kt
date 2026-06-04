@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
@@ -15,7 +16,10 @@ import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.events.RCTEventEmitter
 import com.idanalyzer.docupass.DocuPassConfig
 import com.idanalyzer.docupass.DocuPassResult
+import com.idanalyzer.docupass.ui.DocuPassStrings
+import com.idanalyzer.docupass.ui.DocuPassTheme
 import com.idanalyzer.docupass.ui.DocuPassView
+import com.idanalyzer.docupass.ui.withOverrides
 
 /**
  * Hosts the native Compose [DocuPassView] inside a React Native view and emits
@@ -27,20 +31,30 @@ class DocuPassHostView(private val reactContext: ThemedReactContext) : AbstractC
     var reference: String? = null
     var partyId: String? = null
     var baseUrl: String? = null
+    var brandColor: String? = null
+    var logoUrl: String? = null
+    var labels: Map<String, String> = emptyMap()
 
     private var config by mutableStateOf<DocuPassConfig?>(null)
+    private var strings by mutableStateOf(DocuPassStrings())
+    private var theme by mutableStateOf(DocuPassTheme())
 
-    /** Build/refresh the config from the current props (call after props change). */
+    /** Build/refresh config + customization from the current props (call after props change). */
     fun applyProps() {
         val ref = reference?.takeIf { it.isNotBlank() } ?: return
-        if (config?.reference == ref && config?.partyId == partyId && config?.baseUrlOverride == baseUrl) return
         config = DocuPassConfig(reference = ref, partyId = partyId, baseUrlOverride = baseUrl)
+        strings = DocuPassStrings().withOverrides(labels)
+        theme = DocuPassTheme(
+            primaryColor = brandColor?.takeIf { it.isNotBlank() }
+                ?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() },
+            logoUrl = logoUrl?.takeIf { it.isNotBlank() },
+        )
     }
 
     @Composable
     override fun Content() {
         val cfg = config ?: return
-        DocuPassView(config = cfg, onResult = ::emitResult)
+        DocuPassView(config = cfg, strings = strings, theme = theme, onResult = ::emitResult)
     }
 
     override fun onAttachedToWindow() {

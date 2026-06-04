@@ -21,6 +21,16 @@ export interface DocuPassViewProps {
   partyId?: string;
   /** Optional base URL override (on-prem ID Fort). */
   baseUrl?: string;
+  /** Brand color for buttons/controls, hex (e.g. "#1565C0"). */
+  brandColor?: string;
+  /** Logo shown on the welcome screen (overrides the server logo). */
+  logoUrl?: string;
+  /**
+   * Override any UI label — keys are the DocuPassStrings property names
+   * (e.g. `{ phoneTitle: "Vérifiez votre téléphone", phoneSendSms: "Envoyer" }`).
+   * Use this to re-word or localize the flow to any language.
+   */
+  labels?: Record<string, string>;
   style?: ViewStyle;
   onResult?: (event: DocuPassResultEvent) => void;
 }

@@ -11,6 +11,9 @@ class DocuPassRNView: UIView {
     @objc var reference: NSString? { didSet { rebuild() } }
     @objc var partyId: NSString?
     @objc var baseUrl: NSString?
+    @objc var brandColor: NSString? { didSet { rebuild() } }
+    @objc var logoUrl: NSString? { didSet { rebuild() } }
+    @objc var labels: NSDictionary? { didSet { rebuild() } }
     @objc var onResult: RCTDirectEventBlock?
 
     private var hosting: UIHostingController<AnyView>?
@@ -22,7 +25,13 @@ class DocuPassRNView: UIView {
             partyId: partyId as String?,
             baseURLOverride: baseUrl as String?
         )
-        let root = DocuPassView(config: config) { [weak self] result in self?.emit(result) }
+        let theme = DocuPassTheme(
+            primaryColor: (brandColor as String?).flatMap { Color(hex: $0) },
+            logoURL: (logoUrl as String?).flatMap { $0.isEmpty ? nil : $0 }
+        )
+        let overrides = (labels as? [String: String]) ?? [:]
+        let strings = DocuPassStrings().applying(overrides)
+        let root = DocuPassView(config: config, strings: strings, theme: theme) { [weak self] result in self?.emit(result) }
 
         hosting?.view.removeFromSuperview()
         hosting?.removeFromParent()

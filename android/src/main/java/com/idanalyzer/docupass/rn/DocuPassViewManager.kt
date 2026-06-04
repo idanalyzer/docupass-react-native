@@ -1,5 +1,6 @@
 package com.idanalyzer.docupass.rn
 
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.annotations.ReactProp
@@ -25,6 +26,27 @@ class DocuPassViewManager : SimpleViewManager<DocuPassHostView>() {
     @ReactProp(name = "baseUrl")
     fun setBaseUrl(view: DocuPassHostView, value: String?) {
         view.baseUrl = value
+        view.applyProps()
+    }
+
+    @ReactProp(name = "brandColor")
+    fun setBrandColor(view: DocuPassHostView, value: String?) {
+        view.brandColor = value
+        view.applyProps()
+    }
+
+    @ReactProp(name = "logoUrl")
+    fun setLogoUrl(view: DocuPassHostView, value: String?) {
+        view.logoUrl = value
+        view.applyProps()
+    }
+
+    @ReactProp(name = "labels")
+    fun setLabels(view: DocuPassHostView, value: ReadableMap?) {
+        view.labels = value?.toHashMap()?.entries
+            ?.filter { it.value is String }
+            ?.associate { it.key to it.value as String }
+            ?: emptyMap()
         view.applyProps()
     }
 
