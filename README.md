@@ -37,13 +37,24 @@ Built by **[ID Analyzer](https://www.idanalyzer.com)** — identity verification
 
 ## How it works
 
-1. **Server → create a session.** `POST /docupass` with your API key (any
-   [ID Analyzer server SDK](https://developer.idanalyzer.com/help)) → get a **`reference`**.
-2. **App → render `<DocuPassView reference=... />`.** The SDK runs capture + liveness
-   on-device and fires `onResult`.
-3. **Server → fetch the result.** `GET /docupass/{reference}` with your API key.
+**Your API key is secret and lives only on your backend** — the app never creates a
+session or reads results directly. The device only ever holds a short-lived `reference`.
 
-Your API key stays on your backend; the device only ever holds the `reference`.
+1. **Server → create a session.** `POST /docupass` with your API key (any
+   [ID Analyzer server SDK](https://developer.idanalyzer.com/help)) using a
+   [KYC profile](https://developer.idanalyzer.com/help/profiles); set a **webhook URL**
+   on the profile. You get a **`reference`**.
+2. **App → render `<DocuPassView reference=... />`.** The SDK runs capture + liveness
+   on-device and fires `onResult` when the flow ends — a **UX signal**, not the result.
+3. **Server → receive the verified result**:
+   - **Recommended — webhook (push).** On completion, ID Analyzer `POST`s the full
+     transaction (name, DOB, document number, face-match, AML, decision, warnings,
+     images) to your webhook URL, with retries.
+   - **Or pull it server-side** with `GET /docupass/{reference}` (your API key).
+
+> 🔒 **Never put your API key in the app**, and never call `POST /docupass` or
+> `GET /docupass/{reference}` from the app — both need your secret key. `onResult` is
+> a UI cue only; **your backend is the source of truth**.
 
 ## Installation
 
@@ -83,7 +94,8 @@ export function Verify() {
       onResult={(r) => {
         switch (r.status) {
           case 'completed':
-            // Verified. Fetch data server-side: GET /docupass/{r.reference}
+            // Flow finished — update your UI. Verified data arrives on your
+            // server via webhook (or GET /docupass/{r.reference}), not here.
             break;
           case 'failed':    break; // rejected
           case 'cancelled': break; // user dismissed
@@ -143,8 +155,10 @@ Need a completely custom UI? Use the native [Android](https://github.com/idanaly
 
 `DocuPassResultEvent`: `{ status: 'completed' | 'failed' | 'cancelled' | 'error', reference, code?, message?, redirectUrl? }`.
 
-The verification **data and decision live server-side** — fetch them with your API
-key via `GET /docupass/{reference}`.
+`onResult` only tells your **app** that the flow ended — it carries no verified
+identity data. The verified data and decision arrive on your **server**: via the
+**webhook** on your DocuPass profile (recommended, with retries), or `GET /docupass/{reference}`
+server-side with your API key. Never use a client-side result as the decision.
 
 ## Links
 
