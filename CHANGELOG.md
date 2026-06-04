@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.1
+
+- **Customization props** on `<DocuPassView>` — `brandColor`, `logoUrl`, and
+  `labels` (override any user-facing label, in any language), forwarded to the
+  native cores' `DocuPassTheme` / `DocuPassStrings`.
+- Picks up the native cores' 0.1.1 audit fixes (e-signature `data-signature`
+  field detection, phone country-code picker).
+
+## 0.1.0
 
 Initial DocuPass React Native bridge over the native Android + iOS cores.
 

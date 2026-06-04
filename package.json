@@ -1,6 +1,6 @@
 {
   "name": "docupass-react-native",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Native in-app ID verification & KYC for React Native (ID Analyzer DocuPass) — document scan, face match, on-device liveness, no WebView.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
