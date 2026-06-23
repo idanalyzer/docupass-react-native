@@ -24,7 +24,9 @@ source of truth for the final identity decision.
 
 ## Installation
 
-### Event API Only
+### React Native CLI
+
+#### Event API Only
 
 Use this path when you want to build every UI screen yourself.
 
@@ -33,7 +35,7 @@ npm install docupass-react-native
 cd ios && pod install
 ```
 
-### Quick KYCScreen
+#### Quick KYCScreen
 
 The quick screen uses VisionCamera for document capture and
 `react-native-vision-camera-face-detector` for face actions.
@@ -51,38 +53,25 @@ cd ios && pod install
 Follow the VisionCamera and face-detector installation notes for your React
 Native version.
 
-### iOS
+### Expo
 
-Add a camera usage string:
+Expo Go is not supported because this SDK contains native code. Use an Expo
+development build, EAS build, or `expo prebuild`.
 
-```xml
-<key>NSCameraUsageDescription</key>
-<string>Camera access is required for identity verification.</string>
+For the headless event API only:
+
+```sh
+npx expo install docupass-react-native
 ```
 
-The podspec depends on:
+For the quick `KYCScreen`:
 
-- `DocuPass ~> 0.2`
-- `React-Core`
+```sh
+npx expo install docupass-react-native react-native-vision-camera
+npm install react-native-vision-camera-face-detector react-native-nitro-modules react-native-nitro-image
+```
 
-The pod is a static framework so it can integrate with the DocuPass iOS pod and
-MediaPipe static XCFrameworks.
-
-### Android
-
-The Android module depends on:
-
-- `com.idanalyzer:docupass:0.1.6`
-- `com.facebook.react:react-android`
-
-The quick screen requires camera permission at runtime through VisionCamera.
-
-## Expo
-
-Expo Go is not supported because this SDK contains native code. Use prebuild or
-an EAS development build.
-
-Add the config plugin:
+Add the config plugin to `app.json` or `app.config.js`:
 
 ```json
 {
@@ -99,10 +88,12 @@ Add the config plugin:
 }
 ```
 
-Then run:
+Then generate native projects and run a development build:
 
 ```sh
 npx expo prebuild
+npx expo run:ios
+npx expo run:android
 ```
 
 For projects that already use `expo-build-properties`, keep iOS frameworks
@@ -129,6 +120,32 @@ static:
   }
 }
 ```
+
+### iOS
+
+Add a camera usage string:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Camera access is required for identity verification.</string>
+```
+
+The podspec depends on:
+
+- `DocuPass ~> 0.2`
+- `React-Core`
+
+The pod is a static framework so it can integrate with the DocuPass iOS pod and
+MediaPipe static XCFrameworks.
+
+### Android
+
+The Android module depends on:
+
+- `com.idanalyzer:docupass:0.1.6`
+- `com.facebook.react:react-android`
+
+The quick screen requires camera permission at runtime through VisionCamera.
 
 ## Quick UI
 
@@ -373,27 +390,6 @@ non-empty array of raw JPEG base64 strings.
 
 Use `readImageFileAsBase64(uri)` if your camera library returns a local file path
 or `file://` URI.
-
-## Publishing
-
-This package publishes to npm through GitHub Actions trusted publishing.
-
-Release steps:
-
-```sh
-npm version 0.2.0 --no-git-tag-version
-npm run typecheck
-npm run build
-npm pack --dry-run
-git add .
-git commit -m "release: v0.2.0"
-git tag v0.2.0
-git push origin main
-git push origin v0.2.0
-```
-
-The publish workflow checks that `vX.Y.Z` matches `package.json` before running
-`npm publish --provenance --access public`.
 
 ## License
 
