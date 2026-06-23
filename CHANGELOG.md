@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- Reworked the SDK as a headless DocuPass KYC native module for React Native.
+- Added event/session APIs for fully custom React Native UI.
+- Added a React Native `KYCScreen` quick UI built on the same native event stream.
+- Added VisionCamera-based document capture and
+  `react-native-vision-camera-face-detector` face verification for the quick UI.
+- Added iOS and Android native modules that wrap the published DocuPass native SDKs.
+- Added Expo config plugin support for camera permissions and static iOS pods.
+
 ## 0.1.1
 
 - **Customization props** on `<DocuPassView>` — `brandColor`, `logoUrl`, and

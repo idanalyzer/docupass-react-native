@@ -1,7 +1,7 @@
 name: Publish to npm
 
 # Publishes docupass-react-native to npm when a version tag (v*) is pushed, using
-# npm Trusted Publishing (OIDC) — NO token, same setup as idanalyzer2.
+# npm Trusted Publishing (OIDC). No npm token is required.
 #
 # ONE-TIME SETUP ON npmjs.com (no secret needed):
 #   npmjs.com -> Trusted Publisher (for the docupass-react-native package /
@@ -10,9 +10,9 @@ name: Publish to npm
 #     Repository        = docupass-react-native
 #     Workflow filename = publish.yml
 #     Environment       = (leave blank)
-#   Then push tag v0.1.0. (If npm requires the package to exist before a trusted
-#   publisher can be attached, do one manual `npm publish` to create it, then this
-#   workflow handles every release after — exactly like the idanalyzer2 flow.)
+#   Then push a matching version tag, for example v0.2.0. If npm requires the
+#   package to exist before a trusted publisher can be attached, do one manual
+#   `npm publish` to create it first. This workflow handles later releases.
 
 on:
   push:
@@ -38,7 +38,15 @@ jobs:
       - name: Install + build
         run: |
           npm install
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $VERSION"
+            exit 1
+          fi
+          npm run typecheck
           npm run build
+          npm pack --dry-run
 
       - name: Update npm (trusted publishing needs npm >= 11.5.1)
         run: npm install -g npm@latest

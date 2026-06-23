@@ -10,12 +10,16 @@ Pod::Spec.new do |s|
   s.license      = { :type => "MIT", :file => "LICENSE" }
   s.authors      = { "ID Analyzer" => "support@idanalyzer.com" }
   s.platforms    = { :ios => "15.0" }
-  s.source       = { :git => "https://github.com/idanalyzer/docupass-react-native.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/idanalyzer/docupass-react-native.git", :tag => "v#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm,swift}"
   s.swift_version = "5.9"
+  s.static_framework = true
+  s.pod_target_xcconfig = {
+    "DEFINES_MODULE" => "YES",
+    "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/Headers/Public/React-Core\" \"$(PODS_ROOT)/Headers/Private/React-Core\""
+  }
 
   s.dependency "React-Core"
-  # The native iOS DocuPass core (wraps MediaPipeTasksVision).
-  s.dependency "DocuPass", "~> 0.1"
+  s.dependency "DocuPass", "~> 0.2"
 end

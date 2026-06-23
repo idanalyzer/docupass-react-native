@@ -7,10 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  typecheck:
-    # The TypeScript surface is checked here. The native halves (Android Kotlin /
-    # iOS Swift) build against the published native cores (com.idanalyzer:docupass
-    # AAR / DocuPass pod) — wire a full native build once those are published.
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,4 +20,25 @@ jobs:
         run: npm install
 
       - name: TypeScript typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
+
+      - name: Build package
+        run: npm run build
+
+      - name: Verify npm package contents
+        run: npm pack --dry-run
+
+  podspec:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install
+
+      - name: Validate podspec syntax
+        run: pod ipc spec DocupassReactNative.podspec > /tmp/DocupassReactNative.podspec.json

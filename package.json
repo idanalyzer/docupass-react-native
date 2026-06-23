@@ -1,13 +1,15 @@
 {
   "name": "docupass-react-native",
-  "version": "0.1.1",
-  "description": "Native in-app ID verification & KYC for React Native (ID Analyzer DocuPass) — document scan, face match, on-device liveness, no WebView.",
+  "version": "0.2.0",
+  "description": "Headless event API and React Native KYCScreen for ID Analyzer DocuPass KYC.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
     "lib",
     "android",
     "ios",
+    "app.plugin.js",
+    "react-native.config.js",
     "DocupassReactNative.podspec",
     "README.md",
     "LICENSE"
@@ -15,7 +17,8 @@
   "scripts": {
     "build": "tsc",
     "prepare": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pack:dry-run": "npm pack --dry-run"
   },
   "keywords": [
     "react-native",
@@ -38,8 +41,29 @@
     "access": "public"
   },
   "peerDependencies": {
-    "react": "*",
-    "react-native": "*"
+    "react": ">=18",
+    "react-native": ">=0.74",
+    "react-native-vision-camera": ">=5.0",
+    "react-native-vision-camera-face-detector": ">=2.0.1",
+    "react-native-nitro-modules": ">=0.35",
+    "react-native-nitro-image": ">=0.15"
+  },
+  "peerDependenciesMeta": {
+    "react-native-vision-camera": {
+      "optional": true
+    },
+    "react-native-vision-camera-face-detector": {
+      "optional": true
+    },
+    "react-native-nitro-modules": {
+      "optional": true
+    },
+    "react-native-nitro-image": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@expo/config-plugins": "^56.0.9"
   },
   "devDependencies": {
     "react": "18.3.1",
