@@ -1,6 +1,6 @@
 {
   "name": "docupass-react-native",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Headless event API and React Native KYCScreen for ID Analyzer DocuPass KYC.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
