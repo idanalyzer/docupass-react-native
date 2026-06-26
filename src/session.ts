@@ -253,7 +253,9 @@ export class DocupassKycSession {
   }
 
   private async withBusy(operation: () => Promise<void>): Promise<void> {
-    if (this.closed) return;
+    if (this.closed) {
+      return;
+    }
     this.setBusy(true);
     await waitForUi();
     try {

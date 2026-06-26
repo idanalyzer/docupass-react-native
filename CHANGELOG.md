@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Removed temporary debug logging and local log-server calls from the SDK.
+- Cleaned the publish build output so no debug helper files are included in the npm package.
+
 ## 0.2.0
 
 - Reworked the SDK as a headless DocuPass KYC native module for React Native.

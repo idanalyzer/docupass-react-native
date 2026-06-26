@@ -87,7 +87,9 @@ export function KYCScreen(props: KYCScreenProps): JSX.Element {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const actionLoadingRef = useRef(false);
   const runWithLoading = useCallback<RunWithLoading>(async (operation) => {
-    if (actionLoadingRef.current) return;
+    if (actionLoadingRef.current) {
+      return;
+    }
     actionLoadingRef.current = true;
     setIsActionLoading(true);
     const startedAt = Date.now();
@@ -563,7 +565,8 @@ function DocumentCaptureScreen({
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
   const [captureError, setCaptureError] = useState<string | null>(null);
-  const busy = isBusy;
+  const [isUploading, setIsUploading] = useState(false);
+  const busy = isBusy || isUploading;
   const requiresBack = requiresDocumentBackSide(event.documentType, event.documentSide);
   const ready = front.trim().length > 0 && (!requiresBack || back.trim().length > 0);
 
@@ -583,12 +586,18 @@ function DocumentCaptureScreen({
   };
 
   const upload = async () => {
-    if (!ready || busy) return;
+    if (!ready || busy) {
+      return;
+    }
     setCaptureError(null);
+    setIsUploading(true);
     try {
+      await waitForNextPaint();
       await Promise.resolve(onCaptured(front.trim(), requiresBack ? back.trim() : null));
     } catch (error) {
       setCaptureError(error instanceof Error ? error.message : 'Unable to upload document.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -643,6 +652,7 @@ function DocumentCaptureScreen({
         <ActionButton disabled={busy || !ready} onPress={upload}>
           UPLOAD DOCUMENT
         </ActionButton>
+        {isUploading && !isBusy ? <BusyOverlay /> : null}
     </ScrollPanel>
   );
 }

@@ -2,6 +2,7 @@ import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } f
 import {
   ActivityIndicator,
   Dimensions,
+  InteractionManager,
   Modal,
   Platform,
   Pressable,
@@ -88,6 +89,8 @@ type FaceRequest = {
   context: Required<Pick<VisionFaceCaptureOptions, 'turnTimeSeconds' | 'maskCircleRadius' | 'maskCircleY'>>;
   deferred: Deferred<string[]>;
 };
+
+type NitroCameraImage = Awaited<ReturnType<Photo['toImageAsync']>>;
 
 export function useVisionCameraCaptureAdapters(
   options: UseVisionCameraCaptureAdaptersOptions = {},
@@ -201,6 +204,7 @@ export function VisionDocumentCaptureModal({
   const previewWidth = isPhonePortrait ? window.width : window.width * 0.9;
   const previewHeight = previewWidth / previewAspect;
   const [cardMaskType, setCardMaskType] = useState<KYCDocumentType | null>(null);
+  const [isClosingCapture, setIsClosingCapture] = useState(false);
   const canToggleCardMask =
     context?.documentType?.key === 'driverLicense' || context?.documentType?.key === 'identityCard';
   const effectiveDocumentType = canToggleCardMask
@@ -215,6 +219,9 @@ export function VisionDocumentCaptureModal({
   );
 
   useEffect(() => {
+    if (!visible) {
+      setIsClosingCapture(false);
+    }
     if (visible && !permission.hasPermission && permission.canRequestPermission) {
       permission.requestPermission();
     }
@@ -232,26 +239,38 @@ export function VisionDocumentCaptureModal({
   }, [context?.documentType, visible]);
 
   const capture = async () => {
-    if (isCapturing) return;
+    if (isCapturing || isClosingCapture) {
+      return;
+    }
     setIsCapturing(true);
     let photo: Photo | null = null;
+    let capturedBase64: string | null = null;
     try {
       photo = await photoOutput.capturePhoto(
         { flashMode: 'off', enableShutterSound: false },
         {},
       );
-      const base64 = await cropDocumentPhotoToMaskBase64(
+      capturedBase64 = await cropDocumentPhotoToMaskBase64(
         photo,
         { width: previewWidth, height: previewHeight },
         maskFrame,
         maskSpec,
       );
-      onCaptured(base64);
     } catch (error) {
       onError?.(asError(error, 'Unable to capture document photo.'));
     } finally {
-      photo?.dispose();
+      try {
+        photo?.dispose();
+      } catch (error) {
+        void error;
+      }
       setIsCapturing(false);
+    }
+
+    if (capturedBase64) {
+      setIsClosingCapture(true);
+      await wait(Platform.OS === 'ios' ? 350 : 0);
+      onCaptured(capturedBase64);
     }
   };
 
@@ -268,7 +287,7 @@ export function VisionDocumentCaptureModal({
             <Camera
               style={StyleSheet.absoluteFill}
               device={device}
-              isActive={visible}
+              isActive={visible && !isClosingCapture}
               outputs={[photoOutput]}
               resizeMode="cover"
               enableNativeTapToFocusGesture
@@ -287,14 +306,14 @@ export function VisionDocumentCaptureModal({
 
         <View style={[cameraStyles.documentShutterBox, { paddingBottom: 8 + navigationInset }]}>
           <DocumentShutterButton
-            disabled={!permission.hasPermission || !device || isCapturing}
-            isLoading={isCapturing}
+            disabled={!permission.hasPermission || !device || isCapturing || isClosingCapture}
+            isLoading={isCapturing || isClosingCapture}
             onPress={capture}
           />
           {canToggleCardMask ? (
             <Pressable
               accessibilityRole="button"
-              disabled={isCapturing}
+              disabled={isCapturing || isClosingCapture}
               onPress={() => {
                 setCardMaskType((current) =>
                   current?.key === 'driverLicense'
@@ -302,7 +321,7 @@ export function VisionDocumentCaptureModal({
                     : { key: 'driverLicense', label: 'Driver License', apiTypeCode: 'D', requiresBackSide: true },
                 );
               }}
-              style={[cameraStyles.maskToggle, isCapturing && cameraStyles.disabled]}
+              style={[cameraStyles.maskToggle, (isCapturing || isClosingCapture) && cameraStyles.disabled]}
             >
               <Text style={cameraStyles.maskToggleText}>
                 {effectiveDocumentType?.key === 'driverLicense' ? 'VERT' : 'LAND'}
@@ -438,6 +457,9 @@ async function cropDocumentPhotoToMaskBase64(
   spec: DocumentMaskSpec,
 ): Promise<string> {
   const source = await photo.toImageAsync();
+  let workingImage: NitroCameraImage = source;
+  let normalizedImage: NitroCameraImage | null = null;
+  let croppedImage: NitroCameraImage | null = null;
   const cropFrame = spec.lowerHalfOnly
     ? {
         ...frame,
@@ -446,33 +468,79 @@ async function cropDocumentPhotoToMaskBase64(
       }
     : frame;
 
-  if (source.width <= 2 || source.height <= 2) {
-    const encoded = await source.toEncodedImageDataAsync('jpg', 88);
+  try {
+    normalizedImage = await normalizeDocumentImageForCrop(photo, source);
+    workingImage = normalizedImage;
+
+    if (workingImage.width <= 2 || workingImage.height <= 2) {
+      const encoded = await workingImage.toEncodedImageDataAsync('jpg', 88);
+      return arrayBufferToBase64(encoded.buffer);
+    }
+
+    const scale = Math.max(previewSize.width / workingImage.width, previewSize.height / workingImage.height);
+    const renderedWidth = workingImage.width * scale;
+    const renderedHeight = workingImage.height * scale;
+    const offsetX = (renderedWidth - previewSize.width) * 0.5;
+    const offsetY = (renderedHeight - previewSize.height) * 0.5;
+
+    const startX = (cropFrame.left + offsetX) / scale;
+    const startY = (cropFrame.top + offsetY) / scale;
+    const endX = (cropFrame.left + cropFrame.width + offsetX) / scale;
+    const endY = (cropFrame.top + cropFrame.height + offsetY) / scale;
+
+    const left = clamp(Math.floor(startX), 0, workingImage.width - 2);
+    const top = clamp(Math.floor(startY), 0, workingImage.height - 2);
+    const right = clamp(Math.ceil(endX), left + 2, workingImage.width);
+    const bottom = clamp(Math.ceil(endY), top + 2, workingImage.height);
+    croppedImage = await workingImage.cropAsync(left, top, right, bottom);
+    const encoded = await croppedImage.toEncodedImageDataAsync('jpg', 88);
     return arrayBufferToBase64(encoded.buffer);
+  } finally {
+    disposeImage(croppedImage);
+    if (normalizedImage && !sameHybridObject(normalizedImage, source)) {
+      disposeImage(normalizedImage);
+    }
+    disposeImage(source);
   }
-
-  const scale = Math.max(previewSize.width / source.width, previewSize.height / source.height);
-  const renderedWidth = source.width * scale;
-  const renderedHeight = source.height * scale;
-  const offsetX = (renderedWidth - previewSize.width) * 0.5;
-  const offsetY = (renderedHeight - previewSize.height) * 0.5;
-
-  const startX = (cropFrame.left + offsetX) / scale;
-  const startY = (cropFrame.top + offsetY) / scale;
-  const endX = (cropFrame.left + cropFrame.width + offsetX) / scale;
-  const endY = (cropFrame.top + cropFrame.height + offsetY) / scale;
-
-  const left = clamp(Math.floor(startX), 0, source.width - 2);
-  const top = clamp(Math.floor(startY), 0, source.height - 2);
-  const right = clamp(Math.ceil(endX), left + 2, source.width);
-  const bottom = clamp(Math.ceil(endY), top + 2, source.height);
-  const cropped = await source.cropAsync(left, top, right, bottom);
-  const encoded = await cropped.toEncodedImageDataAsync('jpg', 88);
-  return arrayBufferToBase64(encoded.buffer);
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+async function normalizeDocumentImageForCrop(
+  photo: Photo,
+  source: NitroCameraImage,
+): Promise<NitroCameraImage> {
+  if (Platform.OS !== 'ios' || (photo.orientation === 'up' && !photo.isMirrored)) {
+    return source;
+  }
+
+  const mirrored = photo.isMirrored ? await source.mirrorHorizontallyAsync() : source;
+  try {
+    return await mirrored.rotateAsync(0, false);
+  } finally {
+    if (!sameHybridObject(mirrored, source)) {
+      disposeImage(mirrored);
+    }
+  }
+}
+
+function sameHybridObject(a: NitroCameraImage, b: NitroCameraImage): boolean {
+  if (a === b) return true;
+  try {
+    return a.equals(b);
+  } catch {
+    return false;
+  }
+}
+
+function disposeImage(image: NitroCameraImage | null): void {
+  try {
+    image?.dispose();
+  } catch {
+    // Best-effort native memory cleanup. A disposed/invalid hybrid object can be ignored.
+  }
 }
 
 function resolveDocumentMaskSpec(
@@ -574,6 +642,7 @@ export function VisionFaceCaptureView({
   const [faceAligned, setFaceAligned] = useState(false);
   const [scanStarted, setScanStarted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cameraActivationReady, setCameraActivationReady] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [captured, setCaptured] = useState<string[]>([]);
   const holdStartedAtRef = useRef<number | null>(null);
@@ -782,6 +851,7 @@ export function VisionFaceCaptureView({
   const outputs = useMemo<CameraOutput[]>(() => [photoOutput, faceOutput], [faceOutput, photoOutput]);
   const faceCameraConstraints = useMemo(() => [{ fps: 30 }], []);
   const shouldPauseCamera = isSubmitting || isBusy;
+  const shouldRunCamera = active && !shouldPauseCamera && cameraActivationReady;
   const showLocalSubmitOverlay = isSubmitting && !isBusy;
 
   useEffect(() => {
@@ -810,6 +880,23 @@ export function VisionFaceCaptureView({
     }
   }, [active]);
 
+  useEffect(() => {
+    if (!active || shouldPauseCamera) {
+      setCameraActivationReady(false);
+      return;
+    }
+
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      timeout = setTimeout(() => setCameraActivationReady(true), Platform.OS === 'ios' ? 700 : 0);
+    });
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      interaction.cancel();
+    };
+  }, [active, shouldPauseCamera]);
+
   return (
     <View
       style={cameraStyles.root}
@@ -824,7 +911,7 @@ export function VisionFaceCaptureView({
         <Camera
           style={StyleSheet.absoluteFill}
           device={device}
-          isActive={active && !shouldPauseCamera}
+          isActive={shouldRunCamera}
           outputs={outputs}
           constraints={faceCameraConstraints}
           resizeMode="cover"
@@ -1069,6 +1156,11 @@ function waitForNextFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
   });
+}
+
+function wait(milliseconds: number): Promise<void> {
+  if (milliseconds <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function CameraTopBar({ title, onCancel }: { title: string; onCancel: () => void }): JSX.Element {
