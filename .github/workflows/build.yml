@@ -27,18 +27,3 @@ jobs:
 
       - name: Verify npm package contents
         run: npm pack --dry-run
-
-  podspec:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install deps
-        run: npm install
-
-      - name: Validate podspec syntax
-        run: pod ipc spec DocupassReactNative.podspec > /tmp/DocupassReactNative.podspec.json

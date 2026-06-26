@@ -10,7 +10,7 @@ name: Publish to npm
 #     Repository        = docupass-react-native
 #     Workflow filename = publish.yml
 #     Environment       = (leave blank)
-#   Then push a matching version tag, for example v0.2.0. If npm requires the
+#   Then push a matching version tag, for example v0.2.1. If npm requires the
 #   package to exist before a trusted publisher can be attached, do one manual
 #   `npm publish` to create it first. This workflow handles later releases.
 

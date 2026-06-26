@@ -1,77 +1,60 @@
 # DocuPass React Native SDK
 
-Native ID Analyzer DocuPass KYC for React Native.
+Pure JavaScript React Native SDK for running an ID Analyzer DocuPass verification
+flow inside an app.
 
-This package gives React Native apps two integration paths:
+The package includes:
 
-1. **Quick UI**: render `<KYCScreen />` and let the SDK run a complete React
-   Native KYC screen.
-2. **Custom UI**: use the headless event/session API and render every screen in
-   your app.
+- A ready-to-use React Native `KYCScreen`
+- A headless event/session API for custom UI
+- DocuPass API transport, authorization handling, and task routing
+- Phone, custom form, document, face, contract, pending-party, completed, and
+  failed flow handling
+- Optional adapter hooks for app-owned camera, liveness, and signature capture
 
-The SDK does not use WebView for the KYC flow. The native module wraps the
-published DocuPass iOS and Android SDK event engines. The quick React Native UI
-renders screens in JavaScript and sends actions back to the native session.
+Create DocuPass sessions on your backend. The mobile app should receive only the
+short-lived `reference`; never ship an ID Analyzer API key in React Native code.
+The finish callback is a UI signal only. Your backend webhook or server-side
+result lookup remains the source of truth.
 
-## Security Model
-
-Create DocuPass sessions on your backend. Your mobile app should receive only the
-short-lived `reference`.
-
-Do not put your ID Analyzer API key in React Native code. The callback from this
-SDK is a UI signal only. Your backend webhook or server-side result lookup is the
-source of truth for the final identity decision.
-
-## Installation
-
-### React Native CLI
-
-#### Event API Only
-
-Use this path when you want to build every UI screen yourself.
+## Install
 
 ```sh
 npm install docupass-react-native
-cd ios && pod install
 ```
 
-#### Quick KYCScreen
+This package is pure JS and does not autolink native modules. If your app uses
+the quick UI's camera/liveness/signature adapter hooks, install and configure the
+camera or drawing library you choose in the host app.
 
-The quick screen uses VisionCamera for document capture and
-`react-native-vision-camera-face-detector` for face actions.
+For the bundled VisionCamera document/face capture and signature canvas adapter:
 
 ```sh
 npm install docupass-react-native \
   react-native-vision-camera \
   react-native-vision-camera-face-detector \
   react-native-nitro-modules \
-  react-native-nitro-image
-
-cd ios && pod install
+  react-native-nitro-image \
+  react-native-signature-canvas \
+  react-native-webview
 ```
 
-Follow the VisionCamera and face-detector installation notes for your React
-Native version.
+Then render the native-capture wrapper from the SDK subpath:
 
-### Expo
+```tsx
+import { DocupassNativeCaptureScreen } from 'docupass-react-native/native-capture';
 
-Expo Go is not supported because this SDK contains native code. Use an Expo
-development build, EAS build, or `expo prebuild`.
-
-For the headless event API only:
-
-```sh
-npx expo install docupass-react-native
+export function VerifyScreen({ reference }: { reference: string }) {
+  return <DocupassNativeCaptureScreen reference={reference} />;
+}
 ```
 
-For the quick `KYCScreen`:
+Document capture uses `react-native-vision-camera`; face actions use
+`react-native-vision-camera-face-detector`; signature capture uses
+`react-native-signature-canvas`. MediaPipe is not used by this package.
 
-```sh
-npx expo install docupass-react-native react-native-vision-camera
-npm install react-native-vision-camera-face-detector react-native-nitro-modules react-native-nitro-image
-```
-
-Add the config plugin to `app.json` or `app.config.js`:
+For Expo prebuild projects, the included config plugin can add camera permission
+strings:
 
 ```json
 {
@@ -88,309 +71,120 @@ Add the config plugin to `app.json` or `app.config.js`:
 }
 ```
 
-Then generate native projects and run a development build:
-
-```sh
-npx expo prebuild
-npx expo run:ios
-npx expo run:android
-```
-
-For projects that already use `expo-build-properties`, keep iOS frameworks
-static:
-
-```json
-{
-  "expo": {
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static",
-            "deploymentTarget": "15.0"
-          },
-          "android": {
-            "minSdkVersion": 24
-          }
-        }
-      ],
-      "docupass-react-native"
-    ]
-  }
-}
-```
-
-### iOS
-
-Add a camera usage string:
-
-```xml
-<key>NSCameraUsageDescription</key>
-<string>Camera access is required for identity verification.</string>
-```
-
-The podspec depends on:
-
-- `DocuPass ~> 0.2`
-- `React-Core`
-
-The pod is a static framework so it can integrate with the DocuPass iOS pod and
-MediaPipe static XCFrameworks.
-
-### Android
-
-The Android module depends on:
-
-- `com.idanalyzer:docupass:0.1.6`
-- `com.facebook.react:react-android`
-
-The quick screen requires camera permission at runtime through VisionCamera.
-
 ## Quick UI
 
 ```tsx
-import React from 'react';
 import { KYCScreen } from 'docupass-react-native';
 
 export function VerifyScreen({ reference }: { reference: string }) {
   return (
     <KYCScreen
       reference={reference}
-      onFinish={(event) => {
-        if (event.status === 'completed') {
-          // Update UI. Fetch verified data on your backend.
-        }
-        if (event.status === 'failed') {
-          // Show retry or support UI.
-        }
+      onFinish={(result) => {
+        console.log(result.sessionId);
       }}
       onBackAtFirstStep={() => {
-        // Close your screen.
+        // Close this screen in your navigator.
       }}
     />
   );
 }
 ```
 
-The quick UI includes:
+`KYCScreen` handles loading, server task routing, country and document type
+selection, phone OTP, custom forms, document upload, face upload, contract
+signatures, pending-party refresh, back navigation, and terminal screens.
 
-- Loading and error display
-- Document country selection
-- Document type selection
-- Document capture through VisionCamera
-- Face verification through `react-native-vision-camera-face-detector`
-- Phone OTP
-- Custom form fields
-- Contract submission shell
-- Completed and failed screens
-
-You can replace specific steps while keeping the rest of the quick screen:
+Because this SDK is pure JS, capture is adapter-based:
 
 ```tsx
 <KYCScreen
   reference={reference}
-  renderDocumentCapture={({ payload, uploadDocument }) => (
-    <MyDocumentCamera
-      payload={payload}
-      onDone={(front, back) => uploadDocument(front, back)}
-    />
-  )}
-  renderFaceVerification={({ payload, uploadFace }) => (
-    <MyFaceScreen actions={payload.actions} onDone={uploadFace} />
-  )}
+  captureDocumentSide={async (side, context) => {
+    // Open your app's camera and return raw JPEG base64 without a data URL prefix.
+    return captureDocumentWithYourCamera(side, context);
+  }}
+  captureFace={async (actions) => {
+    // Run your liveness UI and return raw JPEG base64 frames.
+    return captureFaceFrames(actions);
+  }}
+  collectContractSignature={async (field) => {
+    // Return data:image/png;base64,...
+    return openSignaturePad(field);
+  }}
 />
 ```
 
-## Custom UI Event API
+If an adapter is not supplied, the quick UI shows manual base64/data URL fields.
+That keeps the SDK buildable and testable in apps that want to provide capture
+later or build fully custom screens.
 
-Use `useDocuPassKyc` when your app owns every screen.
+## Event API
 
 ```tsx
-import React from 'react';
-import { Button, Text, View } from 'react-native';
-import { useDocuPassKyc } from 'docupass-react-native';
+import { DocupassKycSession, docupassConfigFromReference } from 'docupass-react-native';
 
-export function CustomKyc({ reference }: { reference: string }) {
-  const model = useDocuPassKyc({ reference });
-  const state = model.state;
+const session = new DocupassKycSession(docupassConfigFromReference(reference));
 
-  if (!state || state.event === 'loading') {
-    return <Text>Loading</Text>;
-  }
-
-  switch (state.event) {
+const subscription = session.subscribe((state) => {
+  switch (state.event.kind) {
     case 'documentCountrySelection':
-      return (
-        <View>
-          {state.documentCountrySelection?.countries.map((country) => (
-            <Button
-              key={country.code}
-              title={country.name}
-              onPress={() => model.selectDocumentCountry(country.code)}
-            />
-          ))}
-        </View>
-      );
-
-    case 'documentSelection':
-      return (
-        <View>
-          {state.documentSelection?.documentTypes.map((type) => (
-            <Button
-              key={type.apiTypeCode}
-              title={type.label}
-              onPress={() => model.selectDocumentType(type.apiTypeCode)}
-            />
-          ))}
-        </View>
-      );
-
-    case 'documentCapture':
-      return (
-        <MyDocumentCamera
-          payload={state.documentCapture}
-          onDone={(frontBase64, backBase64) =>
-            model.uploadDocument(frontBase64, backBase64)
-          }
-        />
-      );
-
-    case 'faceVerification':
-      return (
-        <MyFaceLiveness
-          actions={state.face?.actions ?? []}
-          onDone={(faceBase64List) => model.uploadFace(faceBase64List)}
-        />
-      );
-
-    case 'phoneVerification':
-      return (
-        <MyPhoneOtp
-          payload={state.phone}
-          onSend={(number) => model.sendPhoneCode(number, 'sms')}
-          onVerify={(number, code) => model.verifyPhoneCode(number, code)}
-        />
-      );
-
-    case 'customForm':
-      return (
-        <MyCustomForm
-          fields={state.customForm?.fields ?? []}
-          onSubmit={(answers) => model.saveCustomForm(answers)}
-        />
-      );
-
-    case 'contract':
-      return (
-        <MyContract
-          html={state.contract?.html ?? ''}
-          signatureFields={state.contract?.signatureFields ?? []}
-          onSubmit={(signatures) => model.submitContract(signatures)}
-        />
-      );
-
-    case 'partyPending':
-      return <Button title="Refresh" onPress={() => model.refresh()} />;
-
+      console.log(state.event.countries);
+      break;
     case 'completed':
-      return <Text>Verification complete</Text>;
-
-    case 'failed':
-      return <Text>Verification failed</Text>;
+      console.log(state.event.result.sessionId);
+      break;
   }
-}
+});
+
+session.start();
+
+// When the owner unmounts:
+subscription.close();
+session.close();
 ```
 
-## Session Commands
+Session methods match the native SDK flow:
 
-`useDocuPassKyc` and `createDocuPassSession` expose the same commands:
+- `start()`, `refresh()`, `back()`, `clearError()`, `restart()`, `close()`
+- `sendPhoneCode(number, type)`, `verifyPhoneCode(number, code)`
+- `saveCustomForm(answers)`
+- `selectDocumentCountry(countryCode)`, `selectDocumentType(documentTypeCode)`
+- `uploadDocument(frontBase64, backBase64)`
+- `uploadFace(faceBase64List)`
+- `submitContract(signatures)`
 
-| Command | Use |
-| --- | --- |
-| `start()` | Start loading the DocuPass task. Hooks auto-start by default. |
-| `refresh()` | Resync the server task, especially on `partyPending`. |
-| `back()` | Move to the previous event when `state.canGoBack` is true. |
-| `clearError()` | Clear the current non-terminal error. |
-| `restart()` | Reset local state and start again. |
-| `sendPhoneCode(number, type)` | Send SMS or call OTP. |
-| `verifyPhoneCode(number, code)` | Verify OTP. |
-| `saveCustomForm(answers)` | Submit custom field answers. |
-| `selectDocumentCountry(code)` | Choose emitted ISO-2 country. |
-| `selectDocumentType(code)` | Choose emitted document type code. |
-| `uploadDocument(frontBase64, backBase64)` | Submit raw JPEG base64 document images. |
-| `uploadFace(faceBase64List)` | Submit raw JPEG base64 face images. |
-| `submitContract(signatures)` | Submit PNG data URLs keyed by signature UID. |
+Do not call step-specific methods before the matching event is emitted. While
+`state.isBusy` is true, keep UI controls disabled.
 
-Do not call step-specific commands before the matching event is emitted. Disable
-controls while `state.isBusy` is true.
-
-## State Shape
-
-Every update has this shape:
+## Configuration
 
 ```ts
-type DocuPassKycState = {
-  event:
-    | 'loading'
-    | 'phoneVerification'
-    | 'customForm'
-    | 'documentCountrySelection'
-    | 'documentSelection'
-    | 'documentCapture'
-    | 'faceVerification'
-    | 'contract'
-    | 'partyPending'
-    | 'completed'
-    | 'failed';
-  isBusy: boolean;
-  canGoBack: boolean;
-  errorMessage?: string;
-  normalizedError?: DocuPassNormalizedError;
-  result: DocuPassResult;
-  phone?: DocuPassPhoneVerificationPayload;
-  customForm?: DocuPassCustomFormPayload;
-  documentCountrySelection?: DocuPassDocumentCountrySelectionPayload;
-  documentSelection?: DocuPassDocumentSelectionPayload;
-  documentCapture?: DocuPassDocumentCapturePayload;
-  face?: DocuPassFaceVerificationPayload;
-  contract?: DocuPassContractPayload;
-  completed?: DocuPassCompletedPayload;
-  failed?: DocuPassFailedPayload;
-};
+import { docupassConfigFromReference } from 'docupass-react-native';
+
+const geolocation = 'latitude,longitude,accuracy';
+const config = docupassConfigFromReference(
+  reference,
+  partyId,
+  geolocation,
+);
 ```
 
-## Face Verification
+`EU` references use `https://api2-eu.idanalyzer.com/docupassappv3`; all other
+references use the US endpoint.
 
-The native DocuPass session emits:
+Authorization is generated automatically:
 
-```ts
-state.face?.actions
+```text
+DOCUPASS <reference>
+DOCUPASS <reference> <partyId>
+DOCUPASS_SESSION <sessionId>
 ```
 
-The quick `KYCScreen` uses `react-native-vision-camera-face-detector` to detect
-the required actions:
+After `get_action` returns a `sessionId`, later requests use `DOCUPASS_SESSION`.
 
-- `turnLeft`
-- `turnRight`
-- `turnUp`
-- `mouthOpen`
+## Local Demo Mode
 
-After every action is held, the quick UI captures a JPEG frame, converts it to
-raw base64 with the native helper, and calls `uploadFace(faceBase64List)`.
-
-Custom UI can use the same package, another liveness UI, or its own native
-camera implementation. The only requirement is to call `uploadFace` with a
-non-empty array of raw JPEG base64 strings.
-
-## Document Images
-
-`uploadDocument(frontBase64, backBase64)` expects raw JPEG base64 strings without
-`data:image/...` prefixes.
-
-Use `readImageFileAsBase64(uri)` if your camera library returns a local file path
-or `file://` URI.
-
-## License
-
-[MIT](LICENSE) (c) ID Analyzer
+Set `enabled={false}` or `apiConfig.enabled = false` to run the local fallback
+workflow without calling the DocuPass API. This is useful for demo apps and CI
+build checks.

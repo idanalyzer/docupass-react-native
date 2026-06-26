@@ -1,16 +1,57 @@
 {
   "name": "docupass-react-native",
   "version": "0.2.1",
-  "description": "Headless event API and React Native KYCScreen for ID Analyzer DocuPass KYC.",
+  "description": "Pure JavaScript event API and React Native KYCScreen for ID Analyzer DocuPass KYC.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "react-native": "./lib/index.js",
+      "default": "./lib/index.js"
+    },
+    "./vision-camera": {
+      "types": "./lib/vision-camera.d.ts",
+      "react-native": "./lib/vision-camera.js",
+      "default": "./lib/vision-camera.js"
+    },
+    "./signature-canvas": {
+      "types": "./lib/signature-canvas.d.ts",
+      "react-native": "./lib/signature-canvas.js",
+      "default": "./lib/signature-canvas.js"
+    },
+    "./native-capture": {
+      "types": "./lib/native-capture.d.ts",
+      "react-native": "./lib/native-capture.js",
+      "default": "./lib/native-capture.js"
+    },
+    "./app.plugin": "./app.plugin.js",
+    "./app.plugin.js": "./app.plugin.js",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "vision-camera": [
+        "lib/vision-camera.d.ts"
+      ],
+      "signature-canvas": [
+        "lib/signature-canvas.d.ts"
+      ],
+      "native-capture": [
+        "lib/native-capture.d.ts"
+      ]
+    }
+  },
   "files": [
     "lib",
-    "android",
-    "ios",
     "app.plugin.js",
     "react-native.config.js",
-    "DocupassReactNative.podspec",
+    "native-capture.js",
+    "native-capture.d.ts",
+    "signature-canvas.js",
+    "signature-canvas.d.ts",
+    "vision-camera.js",
+    "vision-camera.d.ts",
     "README.md",
     "LICENSE"
   ],
@@ -43,22 +84,30 @@
   "peerDependencies": {
     "react": ">=18",
     "react-native": ">=0.74",
-    "react-native-vision-camera": ">=5.0",
-    "react-native-vision-camera-face-detector": ">=2.0.1",
-    "react-native-nitro-modules": ">=0.35",
-    "react-native-nitro-image": ">=0.15"
+    "react-native-nitro-image": ">=0.14.0",
+    "react-native-nitro-modules": ">=0.35.0",
+    "react-native-signature-canvas": ">=5.0.0",
+    "react-native-vision-camera": ">=5.0.0",
+    "react-native-vision-camera-face-detector": ">=2.0.0",
+    "react-native-webview": ">=13.0.0"
   },
   "peerDependenciesMeta": {
+    "react-native-nitro-image": {
+      "optional": true
+    },
+    "react-native-nitro-modules": {
+      "optional": true
+    },
+    "react-native-signature-canvas": {
+      "optional": true
+    },
     "react-native-vision-camera": {
       "optional": true
     },
     "react-native-vision-camera-face-detector": {
       "optional": true
     },
-    "react-native-nitro-modules": {
-      "optional": true
-    },
-    "react-native-nitro-image": {
+    "react-native-webview": {
       "optional": true
     }
   },
@@ -66,9 +115,15 @@
     "@expo/config-plugins": "^56.0.9"
   },
   "devDependencies": {
+    "@types/react": "18.3.12",
     "react": "18.3.1",
     "react-native": "0.76.5",
-    "typescript": "5.6.3",
-    "@types/react": "18.3.12"
+    "react-native-nitro-image": "0.15.1",
+    "react-native-nitro-modules": "0.35.9",
+    "react-native-signature-canvas": "5.0.2",
+    "react-native-vision-camera": "5.0.11",
+    "react-native-vision-camera-face-detector": "2.0.1",
+    "react-native-webview": "14.0.1",
+    "typescript": "5.6.3"
   }
 }
